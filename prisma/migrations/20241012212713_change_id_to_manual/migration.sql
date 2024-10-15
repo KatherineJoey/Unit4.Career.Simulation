@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE "Item" ALTER COLUMN "id" DROP DEFAULT;
+DROP SEQUENCE "Item_id_seq";
+
+-- AlterTable
+ALTER TABLE "User" ALTER COLUMN "id" DROP DEFAULT;
+DROP SEQUENCE "User_id_seq";
