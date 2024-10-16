@@ -70,11 +70,11 @@ app.get('/api/items/:id', async (req, res) => {
 });
 
 // Search for items by name or keyword
-app.get('/api/items/:name', async (req, res) => {
-  const { name } = req.params;
+app.get('/api/items/search', async (req, res) => {
+  const { name } = req.query;
 
   try {
-    const item = await prisma.item.findFirst({
+    const item = await prisma.item.findMany({
       where: {
         name: {
           contains: name,
@@ -82,7 +82,7 @@ app.get('/api/items/:name', async (req, res) => {
         },
       },
     });
-    if (!item) {
+    if (item.length === 0) {
       return res.status(404).json({ error: 'Item not found' });
     }
     res.json(item);
@@ -255,7 +255,7 @@ app.put('/api/comments/:id', authenticateJWT, async (req, res) => {
   const userId = req.user.id;
 
   try {
-    const comment = await prisma.comment.updateMany({
+    const comment = await prisma.comment.update({
       where: {
         id: Number(id),
         userId,

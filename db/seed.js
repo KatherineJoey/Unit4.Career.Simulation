@@ -1,62 +1,72 @@
-const { Client } = require('pg');
-const client = new Client({
-  connectionString:
-    process.env.DATABASE_URL || 'postgress://localhost/Haircare_Products',
-});
+// const { Client } = require('pg');
+// const client = new Client({
+//   connectionString:
+//     process.env.DATABASE_URL || 'postgress://localhost/Haircare_Products',
+// });
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
-async function init() {
+async function seed() {
   try {
-    await client.connect();
-    console.log('Connected to database');
+    // Drop existing data if needed
+    await prisma.comment.deleteMany({});
+    await prisma.review.deleteMany({});
+    await prisma.item.deleteMany({});
+    await prisma.user.deleteMany({});
 
-    // await client.query('DROP TABLE IF EXISTS Comment CASCADE;');
-    // await client.query('DROP TABLE IF EXISTS Review CASCADE;');
-    // await client.query('DROP TABLE IF EXISTS Item CASCADE;');
-    // await client.query('DROP TABLE IF EXISTS "User" CASCADE;');
+    // Insert Users
+    await prisma.user.createMany({
+      data: [
+        {
+          email: 'fraline@meldigital.com',
+          password: '$2b$10$hashed_password1',
+        },
+        { email: 'njedwards@meu.com', password: '$2b$10$hashed_password2' },
+        { email: 'liudana@botmod.com', password: '$2b$10$hashed_password3' },
+        { email: 'sukreinor@kelang.com', password: '$2b$10$hashed_password4' },
+        { email: 'cahzer28@fb3s.com', password: '$2b$10$hashed_password5' },
+      ],
+    });
 
-    await client.query(`
-    CREATE TABLE IF NOT EXISTS "User"(
-    id SERIAL PRIMARY KEY,
-    email VARCHAR(100) NOT NULL,
-    review VARCHAR (255) NOT NULL,
-    comment VARCHAR (255) NOT NULL
-    );
-    `);
+    // Insert Items
+    await prisma.item.createMany({
+      data: [
+        { name: 'Olaplex', avgScore: 4.5 },
+        { name: 'Moroccan Oil', avgScore: 4.2 },
+        { name: 'Phrenology', avgScore: 4.7 },
+        { name: 'Amika', avgScore: 4.8 },
+        { name: 'Kerastase', avgScore: 4.1 },
+      ],
+    });
 
-    await client.query(`
-    CREATE TABLE IF NOT EXISTS Item(
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    avgScore INT NOT NULL,
-    reviews VARCHAR(255) NOT NULL
-    );
-    `);
+    // Insert Reviews
+    await prisma.review.createMany({
+      data: [
+        { text: 'Great shampoo!', score: 5, userId: 1, itemId: 1 },
+        { text: 'Very moisturizing', score: 4, userId: 1, itemId: 2 },
+        { text: 'Loved it!', score: 5, userId: 2, itemId: 3 },
+        { text: 'Okay product', score: 3, userId: 3, itemId: 4 },
+        { text: 'Best hair mask ever!', score: 5, userId: 4, itemId: 5 },
+      ],
+    });
 
-    await client.query(`
-    CREATE TABLE IF NOT EXISTS Review(
-    id SERIAL PRIMARY KEY,
-    text VARCHAR(255) NOT NULL,
-    user_id INTEGER REFERENCES "User"(id) NOT NULL,
-    item_id INTEGER REFERENCES Item(id) NOT NULL
-    );
-    `);
+    // Insert Comments
+    await prisma.comment.createMany({
+      data: [
+        { userId: 1, reviewId: 1, text: 'I agree, it works wonders!' },
+        { userId: 2, reviewId: 2, text: 'I have a similar experience.' },
+        { userId: 3, reviewId: 3, text: 'Thanks for the review!' },
+        { userId: 4, reviewId: 4, text: 'Cannot wait to try this!' },
+        { userId: 5, reviewId: 5, text: 'Not that great!' },
+      ],
+    });
 
-    await client.query(`
-    CREATE TABLE IF NOT EXISTS Comment(
-    id SERIAL PRIMARY KEY,
-    text VARCHAR(255) NOT NULL,
-    user_id INTEGER REFERENCES "User"(id) NOT NULL,
-    review_id INTEGER REFERENCES Review(id) NOT NULL
-    );
-    `);
-
-    console.log('Database tables has been created.');
-  } catch (err) {
-    console.error('Database initialization error', err);
+    console.log('Database seeded successfully');
+  } catch (error) {
+    console.error('Database initialization error', error);
   } finally {
-    await client.end();
-    console.log('Database client disconnected');
+    await prisma.$disconnect();
   }
 }
 
-init();
+seed();

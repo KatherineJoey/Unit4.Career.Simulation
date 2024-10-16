@@ -3,42 +3,45 @@ const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const app = require('./db/index');
 const bcrypt = require('bcrypt');
-console.log(app);
+console.log('App loaded:', app);
 
 const prisma = new PrismaClient();
 
 describe('API Endpoints', () => {
   let token;
-  let user;
+  let userId;
   //   let hashedPassword;
 
   beforeAll(async () => {
-    // try {
-    //   const existingUsers = await prisma.user.findMany();
-    //   const nextId = existingUsers.length
-    //     ? Math.max(...existingUsers.map((user) => user.id)) + 1
-    //     : 1;
-    //   const userId = 1;
-    const hashedPassword = await bcrypt.hash('plain_password', 10);
-    user = await prisma.user.create({
-      data: {
-        id: userId,
-        email: 'test@example.com',
-        password: hashedPassword,
-      },
-    });
+    try {
+      //   const existingUsers = await prisma.user.findMany();
+      //   const nextId = existingUsers.length
+      //     ? Math.max(...existingUsers.map((user) => user.id)) + 1
+      //     : 1;
+      //   const userId = 1;
+      const hashedPassword = await bcrypt.hash('plain_password', 10);
+      user = await prisma.user.create({
+        data: {
+          email: 'test@example.com',
+          password: hashedPassword,
+        },
+      });
+      userId = user.id;
 
-    const loginRes = await request(app)
-      .post('/api/login')
-      .send({ email: 'test@example.com', password: 'password' });
+      const loginRes = await request(app)
+        .post('/api/login')
+        .send({ email: 'test@example.com', password: 'plain_password' });
 
-    token = loginRes.body.token;
+      token = loginRes.body.token;
+    } catch (error) {
+      console.error('Error setting up test data:', error);
+    }
   });
 
   afterAll(async () => {
-    if (user) {
+    if (userId) {
       //   try {
-      await prisma.user.delete({ where: { id: user.id } });
+      await prisma.user.delete({ where: { id: userId } });
       //   } catch (error) {
       //     console.error('Error deleting user:', error);
     }
@@ -64,7 +67,7 @@ describe('API Endpoints', () => {
     expect(response.body.name).toBe('Test Item');
   });
 
-  test('GET /api/items/:name - should return an item by name', async () => {
+  test('GET /api/items/search - should return an item by name', async () => {
     const newItem = await prisma.item.create({
       data: { name: 'Unique Test Item', avgScore: 4.5 },
     });
@@ -86,7 +89,7 @@ describe('API Endpoints', () => {
   test('POST /api/login - should authenticate user and return a token', async () => {
     const response = await request(app)
       .post('/api/login')
-      .send({ email: 'test@example.com', password: 'password' });
+      .send({ email: 'test@example.com', password: 'plain_password' });
 
     expect(response.status).toBe(200);
     expect(response.body.token).toBeDefined();
@@ -115,8 +118,8 @@ describe('API Endpoints', () => {
       data: {
         text: 'Initial Review',
         score: 4,
-        userId: user.id,
-        itemId: 10,
+        userId,
+        itemId: 1,
       },
     });
 
@@ -134,8 +137,8 @@ describe('API Endpoints', () => {
       data: {
         text: 'Review to Delete',
         score: 4,
-        userId: user.id,
-        itemId: 8,
+        userId,
+        itemId: 1,
       },
     });
 
@@ -148,7 +151,7 @@ describe('API Endpoints', () => {
 
   test('GET /api/reviews/:userId - should return reviews for a specific user', async () => {
     const response = await request(app)
-      .get(`/api/reviews/${user.id}`)
+      .get(`/api/reviews/${userId}`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(response.status).toBe(200);
@@ -160,8 +163,8 @@ describe('API Endpoints', () => {
       data: {
         text: 'Great review!',
         score: 5,
-        userId: user.id,
-        itemId: 7,
+        userId,
+        itemId: 1,
       },
     });
 
@@ -178,7 +181,7 @@ describe('API Endpoints', () => {
     const comment = await prisma.comment.create({
       data: {
         text: 'Initial Comment',
-        userId: user.id,
+        userId,
         reviewId: 1,
       },
     });
@@ -196,7 +199,7 @@ describe('API Endpoints', () => {
     const comment = await prisma.comment.create({
       data: {
         text: 'Comment to Delete',
-        userId: user.id,
+        userId,
         reviewId: 2,
       },
     });
@@ -209,7 +212,7 @@ describe('API Endpoints', () => {
 
   test('GET /api/comments/:userId - should return comments for a specific user', async () => {
     const response = await request(app)
-      .get(`/api/comments/${user.id}`)
+      .get(`/api/comments/${userId}`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(response.status).toBe(200);
